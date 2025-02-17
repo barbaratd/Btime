@@ -5,8 +5,8 @@ O script "cotacao_API", consulta a API da binance e apresenta um display com os 
 
 O scripto "cotacao_WebScaping", consuta o site da Binance e captura dos valores das moedas definidas em forma de lista, e assim, gera um arquivo .csv contendo as informações.
 
-Neste repositorio é possivel encontrar os arquivos .csv gerados, tanto em sucesso como falha.
+Neste repositorio é possivel encontrar os arquivos .csv gerados, tanto em sucesso como falha; e um print com a tela de display que aparece as atualizações das cryptomoedas.
 
-Aproveitem o projeto
+Aproveitem o projeto!
 
 Grata
