@@ -1,0 +1,92 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+import csv
+import time
+
+cryptos = ["BTC", "ETH", "POL", "SOL", "XRP","LTC"]
+caminho_arquivo = "cotacao_criptomoedas.csv" #Deixei sem caminho para nao ter problema de perissao em diretorio ao salvar o arquivo 
+erro_obterCotacao = "Não foi possível obter cotacao"
+erro_convertCotacao = "Não foi possível converter o valor para float"
+
+  options = Options()
+options.headless = True  
+
+# Função para limpar a string que armazena a cotação
+def limpar_cotacao(cotacao):
+    return cotacao.strip().replace('$', '').replace('R$', '').replace(',', '')
+
+
+# Função para obter cotação da moeda
+def obter_cotacao(crypto):
+    url_usd = f"https://www.binance.com/en/trade/{crypto}_USDT"
+    url_brl = f"https://www.binance.com/en/trade/{crypto}_BRL"
+
+    driver = webdriver.Chrome(options=options)
+
+    cotacao_usd = None
+    cotacao_brl = None
+
+    # Obtém cotação em USD
+    driver.get(url_usd)
+    carregar_janela = 0
+    while carregar_janela < 60:
+        try:
+            cotacao_elemento_usd = driver.find_element(By.CLASS_NAME, "subPrice")
+            cotacao_usd = limpar_cotacao(cotacao_elemento_usd.text)
+            break
+        except:
+            carregar_janela += 1
+            time.sleep(1)
+
+    # Obtém cotação em BRL
+    driver.get(url_brl)
+    carregar_janela = 0
+    while carregar_janela < 60:
+        try:
+            cotacao_elemento_brl = driver.find_element(By.CLASS_NAME, "subPrice")
+            cotacao_brl = limpar_cotacao(cotacao_elemento_brl.text)
+            break
+        except:
+            carregar_janela += 1
+            time.sleep(1)
+
+    driver.quit()
+
+    if cotacao_usd is None or cotacao_brl is None:
+        return erro_obterCotacao
+    else:
+        try:
+            return float(cotacao_usd), float(cotacao_brl)
+        except ValueError:
+            return erro_convertCotacao
+
+
+# Função para escrever no arquivo CSV
+def escrever_csv(dados):
+    with open(caminho_arquivo, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Criptomoeda", "Preço (USD)", "Preço (BRL)"])
+        writer.writerows(dados)
+
+    print(f"Arquivo {caminho_arquivo} exportado!")
+
+
+# Função principal
+def main():
+    dados = []
+    for crypto in cryptos:
+        cotacao = obter_cotacao(crypto)
+        if cotacao == erro_obterCotacao or cotacao == erro_convertCotacao:
+            dados.append([crypto, cotacao, cotacao])
+        else:
+            cotacao_usd, cotacao_brl = cotacao
+            dados.append([crypto, f"$ {cotacao_usd:.2f}", f"R$ {cotacao_brl:.2f}"])
+
+    escrever_csv(dados)
+
+
+# Executa a main()
+if __name__ == "__main__":
+    main()
