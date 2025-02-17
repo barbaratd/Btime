@@ -1,0 +1,84 @@
+import tkinter as tk
+from tkinter import messagebox
+import requests
+import csv
+
+url = "https://api.binance.com/api/v3/ticker/price"
+cryptos = ["BTC", "ETH", "POL", "SOL", "XRP","LTC"]
+caminho_arquivo = "cotacao_criptomoedas.csv" #Deixei sem caminho para nao ter problema de permissao em diretorio ao exportar
+dcr_crypto = {}
+
+# Função para obter o valor das moedas
+def obter_cotacao(crypto):
+    try:
+        response = requests.get(url, params={"symbol": crypto})
+        response.raise_for_status()
+        data = response.json()
+        return float(data['price'])
+    except requests.exceptions.RequestException as e:
+        messagebox.showerror("Erro na requisição", f"Erro ao obter valores para {crypto}: {str(e)}")
+        root.quit()
+        return None
+
+
+# Função para atualizar os preços
+def atualizar_cotacao():
+    for crypto in cryptos:
+        preco_brl = obter_cotacao(f"{crypto}BRL")
+        preco_usd = obter_cotacao(f"{crypto}USDT")
+
+        if preco_brl is not None and preco_usd is not None:
+            dcr_crypto[crypto]["brl"].config(text=f"R$ {preco_brl:.2f}")
+            dcr_crypto[crypto]["usd"].config(text=f"$ {preco_usd:.2f}")
+
+    # Taxa de atualização dos valores por segundo
+    root.after(1000, atualizar_cotacao)
+
+
+# Função para gerar o arquivo CSV
+def gerar_csv():
+    with open(caminho_arquivo, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Criptomoeda", "Preço (BRL)", "Preço (USD)"])
+
+        for crypto in cryptos:
+            preco_brl = dcr_crypto[crypto]["brl"].cget("text").replace("R$ ", "")
+            preco_usd = dcr_crypto[crypto]["usd"].cget("text").replace("$ ", "")
+            writer.writerow([crypto, preco_brl, preco_usd])
+
+    messagebox.showinfo("Sucesso", "Arquivo salvo")
+
+
+# Função principal 
+def main():
+    global root
+    root = tk.Tk()
+    root.title("Tabela de Preços Criptomoedas")
+    root.geometry("400x300")
+
+    tk.Label(root, text="Criptomoeda", font=("Arial", 12, "bold")).grid(row=0, column=0, padx=10, pady=5)
+    tk.Label(root, text="Preço (BRL)", font=("Arial", 12, "bold")).grid(row=0, column=1, padx=10, pady=5)
+    tk.Label(root, text="Preço (USD)", font=("Arial", 12, "bold")).grid(row=0, column=2, padx=10, pady=5)
+
+    # Criando os labels para cada criptomoeda
+    for i, crypto in enumerate(cryptos, start=1):
+        tk.Label(root, text=crypto, font=("Arial", 11)).grid(row=i, column=0, padx=10, pady=5)
+
+        dcr_crypto[crypto] = {
+            "brl": tk.Label(root, text="Carregando...", font=("Arial", 11)),
+            "usd": tk.Label(root, text="Carregando...", font=("Arial", 11))
+        }
+
+        dcr_crypto[crypto]["brl"].grid(row=i, column=1, padx=10, pady=5)
+        dcr_crypto[crypto]["usd"].grid(row=i, column=2, padx=10, pady=5)
+
+    # Botão para gerar CSV
+    tk.Button(root, text="Gerar CSV", command=gerar_csv, font=("Arial", 12, "bold")).grid(
+        row=len(cryptos) + 1, column=0, columnspan=3, pady=10
+    )
+
+    atualizar_cotacao()
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
